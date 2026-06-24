@@ -1,0 +1,76 @@
+[
+  {
+    "name": "BlobInventoryTimerTrigger",
+    "scriptFile": "BlobInventoryDotNet.dll",
+    "entryPoint": "BlobInventoryDotNet.Functions.BlobInventoryFunction.RunOnSchedule",
+    "language": "dotnet-isolated",
+    "properties": {
+      "IsCodeless": false
+    },
+    "bindings": [
+      {
+        "name": "timerInfo",
+        "direction": "In",
+        "type": "timerTrigger",
+        "schedule": "0 0 2 * * *",
+        "properties": {}
+      }
+    ]
+  },
+  {
+    "name": "BlobInventoryHttpTrigger",
+    "scriptFile": "BlobInventoryDotNet.dll",
+    "entryPoint": "BlobInventoryDotNet.Functions.BlobInventoryFunction.RunOnDemand",
+    "language": "dotnet-isolated",
+    "properties": {
+      "IsCodeless": false
+    },
+    "bindings": [
+      {
+        "name": "req",
+        "direction": "In",
+        "type": "httpTrigger",
+        "authLevel": "Function",
+        "methods": [
+          "post",
+          "get"
+        ],
+        "route": "start-inventory",
+        "properties": {}
+      },
+      {
+        "name": "$return",
+        "type": "http",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "name": "GetSubscriptionsHttpTrigger",
+    "scriptFile": "BlobInventoryDotNet.dll",
+    "entryPoint": "BlobInventoryDotNet.Functions.BlobInventoryFunction.GetSubscriptions",
+    "language": "dotnet-isolated",
+    "properties": {
+      "IsCodeless": false
+    },
+    "bindings": [
+      {
+        "name": "req",
+        "direction": "In",
+        "type": "httpTrigger",
+        "authLevel": "Function",
+        "methods": [
+          "get",
+          "post"
+        ],
+        "route": "get-subscriptions",
+        "properties": {}
+      },
+      {
+        "name": "$return",
+        "type": "http",
+        "direction": "Out"
+      }
+    ]
+  }
+]

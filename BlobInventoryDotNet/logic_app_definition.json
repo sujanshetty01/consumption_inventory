@@ -1,0 +1,59 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Get_Subscriptions": {
+        "inputs": {
+          "body": [
+            "ca452141-812a-45da-a79b-a6beb43200e8"
+          ],
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "method": "POST",
+          "uri": "https://testfuncconsumption-h6g3bbeve3hedubs.uaenorth-01.azurewebsites.net/api/get-subscriptions"
+        },
+        "runAfter": {},
+        "type": "Http"
+      },
+      "For_each": {
+        "actions": {
+          "Call_Azure_Function": {
+            "inputs": {
+              "body": {
+                "subscriptionId": "@item()"
+              },
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "method": "POST",
+              "uri": "https://testfuncconsumption-h6g3bbeve3hedubs.uaenorth-01.azurewebsites.net/api/start-inventory"
+            },
+            "runAfter": {},
+            "type": "Http"
+          }
+        },
+        "foreach": "@body('Get_Subscriptions')",
+        "runAfter": {
+          "Get_Subscriptions": [
+            "Succeeded"
+          ]
+        },
+        "type": "Foreach"
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {},
+    "triggers": {
+      "Recurrence": {
+        "recurrence": {
+          "frequency": "Month",
+          "interval": 1,
+          "timeZone": "India Standard Time"
+        },
+        "type": "Recurrence"
+      }
+    }
+  }
+}

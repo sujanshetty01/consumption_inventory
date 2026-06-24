@@ -1,0 +1,14 @@
+# Azure Functions ignore file
+# Files listed here will NOT be uploaded during deployment
+
+local.settings.json
+.vscode/
+.git/
+.gitignore
+obj/
+*.user
+*.suo
+*.md
+.funcignore
+publish/
+publish.zip

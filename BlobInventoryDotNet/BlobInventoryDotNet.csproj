@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>BlobInventoryDotNet</RootNamespace>
+    <AssemblyName>BlobInventoryDotNet</AssemblyName>
+    <!-- Do NOT pin RuntimeIdentifier — Consumption plan resolves at runtime -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Azure Functions Isolated Worker v4 -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="1.22.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.17.4" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.2.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="1.3.2" />
+
+    <!-- Application Insights telemetry -->
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="1.2.0" />
+
+    <!-- Azure Identity -->
+    <PackageReference Include="Azure.Identity" Version="1.12.0" />
+
+    <!-- Azure Resource Manager (subscriptions, storage accounts ARM) -->
+    <PackageReference Include="Azure.ResourceManager" Version="1.13.2" />
+    <PackageReference Include="Azure.ResourceManager.Storage" Version="1.3.0" />
+
+    <!-- Azure Storage Blob (blob enumeration) -->
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.22.2" />
+
+    <!-- Excel generation (no COM, no Office, pure managed code) -->
+    <PackageReference Include="ClosedXML" Version="0.102.2" />
+    <PackageReference Include="PdfSharpCore" Version="1.3.67" />
+
+    <!-- Retry / resilience -->
+    <PackageReference Include="Polly" Version="8.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="local.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,21 @@
+# Ignore build output
+**/bin/
+**/obj/
+
+# Local settings and secrets
+local.settings.json
+*.user
+*.suo
+*.vs
+.vscode/
+
+# Azure Functions artifacts
+**/.azurefunctions/
+
+# Visual Studio temporary files
+*.cache
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
