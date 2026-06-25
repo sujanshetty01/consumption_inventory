@@ -49,9 +49,25 @@ public class StorageInventoryOrchestrator
     {
         ILogger logger = executionContext.GetLogger("RunInventory");
 
-        string instanceId = await client.ScheduleNewOrchestrationInstanceAsync("StorageInventoryOrchestration");
+        // Read optional subscriptionId from request body
+        string? subscriptionId = null;
+        try
+        {
+            var body = await req.ReadAsStringAsync();
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                var json = JsonDocument.Parse(body);
+                if (json.RootElement.TryGetProperty("subscriptionId", out var subProp))
+                    subscriptionId = subProp.GetString();
+            }
+        }
+        catch { /* No body or invalid JSON — proceed without filter */ }
 
-        logger.LogInformation("Started orchestration with ID = '{instanceId}'.", instanceId);
+        string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
+            "StorageInventoryOrchestration", subscriptionId);
+
+        logger.LogInformation("Started orchestration with ID = '{instanceId}' for subscription '{sub}'.",
+            instanceId, subscriptionId ?? "(all)");
 
         return client.CreateCheckStatusResponse(req, instanceId);
     }
@@ -61,9 +77,10 @@ public class StorageInventoryOrchestrator
         [OrchestrationTrigger] TaskOrchestrationContext context)
     {
         var logger = context.CreateReplaySafeLogger("StorageInventoryOrchestration");
-        logger.LogInformation("Starting discovering accounts...");
+        var subscriptionId = context.GetInput<string>();
+        logger.LogInformation("Starting discovery for subscription: {Sub}", subscriptionId ?? "(all)");
 
-        var accounts = await context.CallActivityAsync<List<StorageAccountQueueMessage>>("DiscoverAccountsActivity", null);
+        var accounts = await context.CallActivityAsync<List<StorageAccountQueueMessage>>("DiscoverAccountsActivity", subscriptionId);
         
         logger.LogInformation($"Discovered {accounts.Count} accounts. Starting parallel scans...");
         
@@ -85,9 +102,9 @@ public class StorageInventoryOrchestrator
     }
 
     [Function("DiscoverAccountsActivity")]
-    public async Task<List<StorageAccountQueueMessage>> DiscoverAccounts([ActivityTrigger] object nullInput)
+    public async Task<List<StorageAccountQueueMessage>> DiscoverAccounts([ActivityTrigger] string? subscriptionId)
     {
-        return await _inventoryService.DiscoverStorageAccountsAsync();
+        return await _inventoryService.DiscoverStorageAccountsAsync(subscriptionId);
     }
 
     [Function("ScanAccountActivity")]

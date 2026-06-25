@@ -1,4 +1,4 @@
-using BlobInventoryDotNet.Models;
+ using BlobInventoryDotNet.Models;
 
 namespace BlobInventoryDotNet.Services;
 
@@ -10,7 +10,7 @@ public interface IInventoryService
     /// <summary>
     /// Discovers all accessible storage accounts across subscriptions.
     /// </summary>
-    Task<List<StorageAccountQueueMessage>> DiscoverStorageAccountsAsync(CancellationToken cancellationToken = default);
+    Task<List<StorageAccountQueueMessage>> DiscoverStorageAccountsAsync(string? subscriptionId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Enumerates blobs for a specific storage account.

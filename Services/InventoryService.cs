@@ -50,17 +50,27 @@ public sealed class InventoryService : IInventoryService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<List<StorageAccountQueueMessage>> DiscoverStorageAccountsAsync(CancellationToken cancellationToken = default)
+    public async Task<List<StorageAccountQueueMessage>> DiscoverStorageAccountsAsync(string? subscriptionId = null, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Enumerating accessible subscriptions...");
         var armClient = new ArmClient(_credential);
         var subscriptionIds = new List<string>();
 
-        await foreach (var sub in armClient.GetSubscriptions().GetAllAsync(cancellationToken: cancellationToken))
+        if (!string.IsNullOrWhiteSpace(subscriptionId))
         {
-            if (!string.IsNullOrWhiteSpace(sub.Data.SubscriptionId))
+            // Use the explicitly provided subscription ID
+            _logger.LogInformation("Using explicitly provided subscription: {Sub}", subscriptionId);
+            subscriptionIds.Add(subscriptionId);
+        }
+        else
+        {
+            // Fallback: enumerate all accessible subscriptions (original behavior)
+            _logger.LogInformation("No subscription filter provided. Enumerating all accessible subscriptions...");
+            await foreach (var sub in armClient.GetSubscriptions().GetAllAsync(cancellationToken: cancellationToken))
             {
-                subscriptionIds.Add(sub.Data.SubscriptionId);
+                if (!string.IsNullOrWhiteSpace(sub.Data.SubscriptionId))
+                {
+                    subscriptionIds.Add(sub.Data.SubscriptionId);
+                }
             }
         }
 
