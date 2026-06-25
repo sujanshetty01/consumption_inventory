@@ -20,6 +20,8 @@ public sealed class InventoryService : IInventoryService
         "azure-webjobs-",
         "app-package-",
         "scm-releases",
+        // Durable Functions internal containers (leases, applease, control, etc.)
+        "testfunconsumption-",
     };
 
     private static readonly HashSet<string> ExcludedExact =
@@ -89,8 +91,22 @@ public sealed class InventoryService : IInventoryService
             storageAccounts = await FallbackArmEnumerationAsync(armClient, subscriptionIds, cancellationToken);
         }
 
-        // Note: No longer completely excluding testconsumption92e8.
-        // We rely on container exclusions (like 'inventory-reports') to prevent recursive scanning of reports.
+        // Exclude the function app's own storage account to avoid reporting
+        // on internal Durable Functions blobs (leases, control, taskhub, etc.).
+        var excludedAccounts = GetFunctionAppStorageAccountNames();
+        if (excludedAccounts.Count > 0)
+        {
+            var before = storageAccounts.Count;
+            storageAccounts = storageAccounts
+                .Where(a => !excludedAccounts.Contains(a.Name, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+            var removed = before - storageAccounts.Count;
+            if (removed > 0)
+                _logger.LogInformation(
+                    "Excluded {Count} function-app storage account(s) from scan: {Names}",
+                    removed, string.Join(", ", excludedAccounts));
+        }
+
         return storageAccounts;
     }
 
@@ -235,4 +251,45 @@ public sealed class InventoryService : IInventoryService
     }
 
     private static string InferTier(BlobItem b) => b.Properties.BlobType == BlobType.Block ? "Hot (account default)" : "N/A";
+
+    /// <summary>
+    /// Returns the set of storage account names used by the Function App itself,
+    /// so they can be excluded from inventory scans.
+    /// Reads from FUNCTION_APP_STORAGE_ACCOUNT env var and/or parses AzureWebJobsStorage.
+    /// </summary>
+    private static HashSet<string> GetFunctionAppStorageAccountNames()
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Explicit env var (recommended for clarity)
+        var explicitName = Environment.GetEnvironmentVariable("FUNCTION_APP_STORAGE_ACCOUNT");
+        if (!string.IsNullOrWhiteSpace(explicitName))
+            names.Add(explicitName.Trim());
+
+        // Parse from AzureWebJobsStorage connection string
+        var connStr = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        if (!string.IsNullOrWhiteSpace(connStr))
+        {
+            var accountName = ParseAccountNameFromConnectionString(connStr);
+            if (!string.IsNullOrWhiteSpace(accountName))
+                names.Add(accountName);
+        }
+
+        return names;
+    }
+
+    /// <summary>
+    /// Extracts the AccountName value from an Azure Storage connection string.
+    /// </summary>
+    private static string? ParseAccountNameFromConnectionString(string connectionString)
+    {
+        // Connection string format: "DefaultEndpointsProtocol=https;AccountName=xxx;AccountKey=yyy;..."
+        foreach (var part in connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var trimmed = part.Trim();
+            if (trimmed.StartsWith("AccountName=", StringComparison.OrdinalIgnoreCase))
+                return trimmed.Substring("AccountName=".Length).Trim();
+        }
+        return null;
+    }
 }

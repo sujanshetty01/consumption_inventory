@@ -112,33 +112,42 @@ public class StorageInventoryOrchestrator
     {
         _logger.LogInformation("Scanning account: {Name}", account.Name);
 
-        var runStart = DateTimeOffset.UtcNow;
-        var containerClient = await EnsureContainerExistsAsync(default);
-        // Scan all blobs for this specific account to generate a full report
-        var records = await _inventoryService.ScanAccountAsync(account, null, default);
-        _logger.LogInformation("Discovered {Count} total blobs in account {Name}.", records.Count, account.Name);
-
-        string tempFileName = string.Empty;
-
-        if (records.Count > 0)
+        try
         {
-            // Save to temp JSON
-            var tempContainerClient = await EnsureContainerExistsAsync(default);
-            tempFileName = $"temp_{account.Name}_{Guid.NewGuid()}.json";
-            var tempBlobClient = tempContainerClient.GetBlobClient(tempFileName);
-            
-            var jsonContent = JsonSerializer.Serialize(records);
-            await tempBlobClient.UploadAsync(BinaryData.FromString(jsonContent), overwrite: true);
-            _logger.LogInformation("Uploaded intermediate data to {TempFileName}", tempFileName);
+            var runStart = DateTimeOffset.UtcNow;
+            var containerClient = await EnsureContainerExistsAsync(default);
+            // Scan all blobs for this specific account to generate a full report
+            var records = await _inventoryService.ScanAccountAsync(account, null, default);
+            _logger.LogInformation("Discovered {Count} total blobs in account {Name}.", records.Count, account.Name);
+
+            string tempFileName = string.Empty;
+
+            if (records.Count > 0)
+            {
+                // Save to temp JSON
+                var tempContainerClient = await EnsureContainerExistsAsync(default);
+                tempFileName = $"temp_{account.Name}_{Guid.NewGuid()}.json";
+                var tempBlobClient = tempContainerClient.GetBlobClient(tempFileName);
+
+                var jsonContent = JsonSerializer.Serialize(records);
+                await tempBlobClient.UploadAsync(BinaryData.FromString(jsonContent), overwrite: true);
+                _logger.LogInformation("Uploaded intermediate data to {TempFileName}", tempFileName);
+            }
+            else
+            {
+                _logger.LogInformation("No new blobs found for {Name}. Skipping.", account.Name);
+            }
+
+            return tempFileName;
         }
-        else
+        catch (Exception ex)
         {
-            _logger.LogInformation("No new blobs found for {Name}. Skipping.", account.Name);
+            _logger.LogWarning(ex,
+                "Failed to scan account {Name} (RG: {RG}, Sub: {Sub}). " +
+                "Skipping this account; orchestration will continue with remaining accounts.",
+                account.Name, account.ResourceGroup, account.SubscriptionId);
+            return string.Empty;
         }
-
-
-
-        return tempFileName;
     }
 
     [Function("GenerateConsolidatedReportsActivity")]
